@@ -9,9 +9,11 @@
 #ifndef BRADOSIA_SETTINGS_MANAGER_H
 #define BRADOSIA_SETTINGS_MANAGER_H
 
-#define USE_RAPID_JSON 1
-//#define USE_HJSON 1
-#define SETTINGS_MANAGER_DEBUG 1
+#define SETTINGS_MANAGER_DEBUG 0
+#define SETTINGS_MANAGER_DEPLOY_FILE_ECHO_DEBUG 0
+#define SETTINGS_MANAGER_DEPLOY_FILE_DEBUG 0
+#define SETTINGS_MANAGER_DEPLOY_DEBUG 1
+#define SETTINGS_MANAGER_VERBOSE 1
 
 // C
 #include <string.h> // memset
@@ -21,6 +23,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <queue>
 #include <string>
 #include <unordered_map>
 
@@ -28,7 +31,6 @@
  * Developed by Tencent
  * License: MITs
  */
-#if USE_RAPID_JSON
 #include <rapidjson/document.h>
 #include <rapidjson/filewritestream.h>
 #include <rapidjson/ostreamwrapper.h>
@@ -36,14 +38,6 @@
 #include <rapidjson/reader.h> // rapidjson::ParseResult
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
-#endif
-
-/* hjson-cpp 1.4
- * License: MIT
- */
-#if USE_HJSON
-#include <hjson.h>
-#endif
 
 namespace bradosia {
 
@@ -53,35 +47,42 @@ namespace bradosia {
  */
 std::string readFile(std::fstream &fileStream);
 
+/* This class is for merging settings from multiple modules
+ * then deploying them back to the modules.
+ *
+ * Enables users to only need one settings file
+ * with only applicable settings deployed to each module
+ */
 class SettingsManager {
   std::string settingsFileNameStr;
-#if USE_RAPID_JSON
   // settings to look for
-  rapidjson::Document master;
-  std::unordered_map<std::string, std::function<void(rapidjson::Value &data)>>
+  std::shared_ptr<rapidjson::Document> master;
+  std::unordered_map<std::string,
+                     std::function<void(std::shared_ptr<rapidjson::Document>)>>
       masterCallbackMap;
-#endif
 
 public:
-  SettingsManager(){
-      master.SetObject();
+  SettingsManager() {
+    master = std::make_shared<rapidjson::Document>();
+    master->SetObject();
   };
   ~SettingsManager(){};
-  void deployFile(std::string settingsFileString);
+  bool deployFile(std::string settingsFileString);
 
-#if USE_RAPID_JSON
-  /* Merges the plugin settings with the master
+  /* Merges the module settings with the master
    */
-  void merge(rapidjson::Value &data,
-             std::unordered_map<std::string,
-                                std::function<void(rapidjson::Value &data)>>);
-#endif
-
-#if USE_RAPID_JSON
+  bool merge(std::shared_ptr<rapidjson::Value> data,
+             std::shared_ptr<std::unordered_map<
+                 std::string,
+                 std::function<void(std::shared_ptr<rapidjson::Document>)>>>
+                 moduleCallbackMap);
   /* Recursive deploying of settings callbacks
+   * Objects discovered with registered names
+   * will de deployed with the registered callback
+   * named callbacks registered with merge()
    */
-  bool deployDOM(rapidjson::Value &dstObject, rapidjson::Value &srcObject);
-#endif
+  bool deploy(std::shared_ptr<rapidjson::Value> dstObject,
+              std::shared_ptr<rapidjson::Value> srcObject);
 };
 
 } // namespace bradosia

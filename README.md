@@ -1,6 +1,18 @@
 # Settings Manager
 Manage application settings and preferences with a JSON settings file.
 
+This class is for merging settings from multiple modules then deploying them back to the modules. It enables users to only need one settings file with only applicable settings deployed to each module.
+
+# Usage
+
+```cpp
+// get JSONdata encoded settings from modules
+if(merge(JSONdata, moduleCallbackMap)){
+// deploy application primary settings
+deployFile("settings.json");
+}
+```
+
 # JSON parsing
 RapidJSON library is used. File parsing uses parse flags:
 
