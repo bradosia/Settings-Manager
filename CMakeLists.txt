@@ -9,7 +9,7 @@ include_directories(
   third_party/rapidjson/include/
 )
 
-set(SOURCES ${SOURCES}
+set(SOURCES
   src/core/SettingsManager.cpp
   src/core/SettingsManager.hpp
 )
